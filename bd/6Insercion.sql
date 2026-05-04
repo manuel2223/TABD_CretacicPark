@@ -46,40 +46,45 @@ VALUES ('Paddock de Velociraptores', 'Muro de Hormigón y Electricidad', 4, 'S',
 INSERT INTO Recintos (nombre_sector, tipo_seguridad, capacidad_max, disponible, historial_alertas)
 VALUES ('Bosque de Triceratops', 'Foso Natural', 10, 'S', T_Lista_Incidencias());
 
-
 -- 3. Insertar Dinosaurios (Usando constructores de Herencia)
--- Sintaxis: T_Tipo(id, nombre, especie, dieta, atributo_especifico1, ...)
+-- Sintaxis: T_Tipo(id, nombre, especie, dieta, ID_RECINTO, atributo_especifico1, ...)
+
 INSERT INTO Dinosaurios VALUES (
-    T_Carnivoro(1, 'Rexy', 'Tyrannosaurus Rex', 'Carnívoro', 10, 'Serrada 20cm'), 
-    (SELECT id_recinto FROM Recintos WHERE nombre_sector = 'T-Rex Kingdom')
+    T_Carnivoro(1, 'Rexy', 'Tyrannosaurus Rex', 'Carnívoro', 
+                (SELECT id_recinto FROM Recintos WHERE nombre_sector = 'T-Rex Kingdom'), 
+                10, 'Serrada 20cm')
 );
 
 INSERT INTO Dinosaurios VALUES (
-    T_Herbivoro(2, 'Ducky', 'Parasaurolophus', 'Herbívoro', 'Helechos y Coníferas', 'S'), 
-    (SELECT id_recinto FROM Recintos WHERE nombre_sector = 'Valle de Gallimimus')
+    T_Herbivoro(2, 'Ducky', 'Parasaurolophus', 'Herbívoro', 
+                (SELECT id_recinto FROM Recintos WHERE nombre_sector = 'Valle de Gallimimus'), 
+                'Helechos y Coníferas', 'S')
 );
 
 INSERT INTO Dinosaurios VALUES (
-    T_Carnivoro(3, 'Blue', 'Velociraptor', 'Carnívoro', 9, 'Garras de hoz'), 
-    (SELECT id_recinto FROM Recintos WHERE nombre_sector = 'Paddock de Velociraptores')
+    T_Carnivoro(3, 'Blue', 'Velociraptor', 'Carnívoro', 
+                (SELECT id_recinto FROM Recintos WHERE nombre_sector = 'Paddock de Velociraptores'), 
+                9, 'Garras de hoz')
 );
 
 INSERT INTO Dinosaurios VALUES (
-    T_Carnivoro(4, 'Mosa', 'Mosasaurus', 'Carnívoro (Peces)', 10, 'Dientes cónicos'), 
-    (SELECT id_recinto FROM Recintos WHERE nombre_sector = 'Laguna Mosasaurus')
+    T_Carnivoro(4, 'Mosa', 'Mosasaurus', 'Carnívoro (Peces)', 
+                (SELECT id_recinto FROM Recintos WHERE nombre_sector = 'Laguna Mosasaurus'), 
+                10, 'Dientes cónicos')
 );
 
 -- Herbívoros
 INSERT INTO Dinosaurios VALUES (
-    T_Herbivoro(5, 'Cera', 'Triceratops', 'Herbívoro', 'Palmeras y Cicadáceas', 'S'), 
-    (SELECT id_recinto FROM Recintos WHERE nombre_sector = 'Bosque de Triceratops')
+    T_Herbivoro(5, 'Cera', 'Triceratops', 'Herbívoro', 
+                (SELECT id_recinto FROM Recintos WHERE nombre_sector = 'Bosque de Triceratops'), 
+                'Palmeras y Cicadáceas', 'S')
 );
 
 INSERT INTO Dinosaurios VALUES (
-    T_Herbivoro(6, 'Spot', 'Diplodocus', 'Herbívoro', 'Copa de árboles altos', 'S'), 
-    (SELECT id_recinto FROM Recintos WHERE nombre_sector = 'Valle de Gallimimus')
+    T_Herbivoro(6, 'Spot', 'Diplodocus', 'Herbívoro', 
+                (SELECT id_recinto FROM Recintos WHERE nombre_sector = 'Valle de Gallimimus'), 
+                'Copa de árboles altos', 'S')
 );
-
 
 -- 4. Insertar Visitantes
 INSERT INTO Visitantes (nombre, dni_pasaporte, telefono) 

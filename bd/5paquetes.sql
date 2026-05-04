@@ -16,10 +16,11 @@ END;
 -- B. Insertar Dinosaurio (Específica de tu parque)
 -- Maneja la inserción polimórfica según el tipo
 CREATE OR REPLACE PROCEDURE sp_nuevo_activo_biologico(
-    p_dino T_Dinosaurio, p_id_recinto NUMBER
+    p_dino T_Dinosaurio
 ) AS
 BEGIN
-    INSERT INTO Dinosaurios VALUES (p_dino, p_id_recinto);
+    -- Como es una tabla OF T_Dinosaurio, le pasamos el objeto entero
+    INSERT INTO Dinosaurios VALUES (p_dino);
     COMMIT;
 END;
 /

@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 
 function cargarDinosaurios() {
-    // Hacemos una petición a nuestra propia API en Python
+    // Hacemos una petición a nuestra API conectada a Oracle
     fetch('/api/dinosaurios')
         .then(response => response.json())
         .then(data => {
@@ -12,18 +12,26 @@ function cargarDinosaurios() {
 
             // Recorremos cada dinosaurio y creamos su tarjeta HTML
             data.forEach(dino => {
-                // Si está en alerta, borde rojo. Si no, verde.
-                const claseAlerta = dino.alerta ? 'alerta-roja' : 'alerta-verde';
-                const estadoTexto = dino.alerta ? '<span class="text-danger fw-bold">¡PELIGRO!</span>' : '<span class="text-success">Seguro</span>';
+                // Lógica de seguridad de InGen basada en la dieta de la BD
+                const esCarnivoro = dino.dieta.toLowerCase().includes('carnívoro');
+                
+                // Usamos colores de Bootstrap según la peligrosidad
+                const claseAlerta = esCarnivoro ? 'border-danger' : 'border-success';
+                const estadoTexto = esCarnivoro ? '<span class="text-danger fw-bold">Peligro Alto</span>' : '<span class="text-success">Estable</span>';
+                const iconoDieta = esCarnivoro ? '🥩' : '🌿';
 
+                // Usamos bg-dark y border-2 para que destaquen sobre el fondo
                 const tarjetaHTML = `
                     <div class="col-md-4 mb-4">
-                        <div class="card dino-card ${claseAlerta} h-100 p-3 shadow">
+                        <div class="card bg-dark text-light ${claseAlerta} border-2 h-100 p-3 shadow">
                             <h4 class="text-warning">${dino.nombre}</h4>
-                            <h6 class="text-light fst-italic">${dino.especie}</h6>
+                            <h6 class="text-secondary fst-italic">${dino.especie} ${iconoDieta}</h6>
                             <hr class="border-secondary">
-                            <p class="mb-1 text-light"><strong>Recinto:</strong> ${dino.recinto}</p>
-                            <p class="mb-0 text-light"><strong>Estado:</strong> ${estadoTexto}</p>
+                            <p class="mb-1"><strong>Dieta:</strong> ${dino.dieta}</p>
+                            <p class="mb-1"><strong>Recinto:</strong> ${dino.recinto}</p>
+                            <p class="mb-0 mt-2 border-top border-secondary pt-2">
+                                <strong>Nivel de Amenaza:</strong> ${estadoTexto}
+                            </p>
                         </div>
                     </div>
                 `;
@@ -33,6 +41,6 @@ function cargarDinosaurios() {
         })
         .catch(error => {
             console.error("Error al obtener los datos de InGen:", error);
-            document.getElementById('contenedor-dinosaurios').innerHTML = '<p class="text-danger">Error crítico del sistema. Contacte con Ray Arnold.</p>';
+            document.getElementById('contenedor-dinosaurios').innerHTML = '<div class="alert alert-danger" role="alert">Error crítico del sistema. Red de recintos inoperativa. Contacte con Ray Arnold.</div>';
         });
 }
