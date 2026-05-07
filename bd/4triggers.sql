@@ -62,15 +62,46 @@ END;
 
 -- 5. Trigger para controlar que no se cambien dinosaurios carnivoros a recintos de hervivoros y viceversa
 CREATE OR REPLACE TRIGGER trg_seguridad_traslados
-BEFORE UPDATE OF id_recinto ON Dinosaurios
+BEFORE INSERT OR UPDATE ON Dinosaurios
 FOR EACH ROW
+DECLARE
+    -- Evita el error de "Tabla Mutante"
+    PRAGMA AUTONOMOUS_TRANSACTION;
+    v_incompatibles NUMBER := 0;
+    v_dieta_new VARCHAR2(50);
 BEGIN
-    -- Evitar que un dinosaurio sea trasladado sin motivo justificado
-    IF :OLD.id_recinto IS NOT NULL AND :NEW.id_recinto != :OLD.id_recinto THEN
-        -- Aquí podrías añadir lógica para comprobar si el nuevo recinto es seguro
-        DBMS_OUTPUT.PUT_LINE('ATENCIÓN: Traslado no autorizado del Activo Biológico ' || :NEW.id_dino || ' al recinto ' || :NEW.id_recinto);
-        -- O si prefieres ser estricto:
-        -- RAISE_APPLICATION_ERROR(-20005, 'TRASLADO DENEGADO: Requiere autorización del Paquete de Seguridad.');
+    -- Si no tiene recinto asignado, no hay peligro
+    IF :NEW.id_recinto IS NULL THEN
+        RETURN;
     END IF;
+
+    -- Pasamos la dieta a minúsculas para ignorar tildes o mayúsculas raras
+    v_dieta_new := LOWER(:NEW.dieta_base);
+
+    IF v_dieta_new LIKE '%carn%' THEN
+        -- Si es CARNÍVORO: Buscamos si hay Herbívoros/Omnívoros ya viviendo ahí
+        SELECT COUNT(*)
+        INTO v_incompatibles
+        FROM Dinosaurios
+        WHERE id_recinto = :NEW.id_recinto
+          AND LOWER(dieta_base) NOT LIKE '%carn%'
+          AND id_dino != NVL(:OLD.id_dino, -1);
+    ELSE
+        -- Si es HERBÍVORO/OMNÍVORO: Buscamos si hay Carnívoros ya viviendo ahí
+        SELECT COUNT(*)
+        INTO v_incompatibles
+        FROM Dinosaurios
+        WHERE id_recinto = :NEW.id_recinto
+          AND LOWER(dieta_base) LIKE '%carn%'
+          AND id_dino != NVL(:OLD.id_dino, -1);
+    END IF;
+
+    -- Si detectamos mezcla de dietas, abortamos de forma limpia
+    IF v_incompatibles > 0 THEN
+        ROLLBACK; -- Cierra la transacción autónoma para evitar fallos internos de Oracle
+        RAISE_APPLICATION_ERROR(-20005, 'SISTEMA INGEN: Traslado denegado. El recinto ' || :NEW.id_recinto || ' ya contiene especies incompatibles (Riesgo Crítico).');
+    END IF;
+
+    COMMIT;
 END;
 /

@@ -7,12 +7,13 @@ body {
 .dino-card {
     background-color: #1e1e1e;
     border: 1px solid #444;
-    transition: transform 0.2s;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .dino-card:hover {
     transform: scale(1.02);
-    border-color: #ffc107;
+    box-shadow: 0 0 15px rgba(255, 193, 7, 0.3) !important;
+    border-color: #ffc107 !important;
 }
 
 .alerta-roja {
@@ -21,4 +22,20 @@ body {
 
 .alerta-verde {
     border-left: 5px solid #198754 !important;
+}
+
+.nav-link {
+    font-weight: 500;
+    transition: all 0.3s ease;
+    margin: 0 5px;
+}
+
+.nav-link:hover {
+    filter: brightness(1.2);
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+}
+
+/* Marca la página activa con una línea inferior */
+.nav-link.active {
+    border-bottom: 2px solid currentColor;
 }

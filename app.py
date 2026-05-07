@@ -1,59 +1,367 @@
-from flask import Flask, render_template, jsonify
+from flask import Flask, render_template, jsonify, request
 import oracledb
 
 app = Flask(__name__)
 
-# Función maestra de conexión al sistema InGen
+# --- CONFIGURACIÓN DE CONEXIÓN ---
 def get_db_connection():
-    # TODO: ¡Cambia estos datos por tus credenciales de Oracle!
     return oracledb.connect(
-        user="system",       # Ej: SYSTEM o tu nombre de esquema
-        password="oracle",  # Tu contraseña de Oracle
-        dsn="localhost:1521/XEPDB1"  # Puede ser XE, XEPDB1 o ORCL, fíjate en SQL Developer
+        user="system",       
+        password="oracle",  
+        dsn="localhost:1521/XE" 
     )
 
+# --- RUTAS FRONTEND ---
 @app.route('/')
 def home():
     """Ruta principal que carga la interfaz web"""
     return render_template('index.html')
 
+# ==========================================
+#              API DINOSAURIOS
+# ==========================================
+
 @app.route('/api/dinosaurios', methods=['GET'])
-def api_dinosaurios():
-    """Ruta API que devuelve el catálogo vivo del parque"""
+def get_dinosaurios():
+    """Obtener todos los dinosaurios (El catálogo)"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Hacemos un JOIN entre la tabla de objetos Dinosaurios y la tabla Recintos
-        # para devolver también el nombre del sector donde viven.
+        # Consulta adaptada a tu esquema exacto
         sql = """
-            SELECT d.id_dino, d.nombre_propio, d.especie, d.dieta_base, r.nombre_sector
+            SELECT d.id_dino, d.nombre_propio, d.especie, d.dieta_base, r.nombre_sector, d.id_recinto
             FROM Dinosaurios d
             JOIN Recintos r ON d.id_recinto = r.id_recinto
             ORDER BY d.id_dino
         """
         cursor.execute(sql)
         
-        # Transformamos las filas crudas de Oracle en un diccionario que el Frontend (JS) entienda
-        lista_dinos = []
-        for row in cursor:
-            lista_dinos.append({
-                "id": row[0],
-                "nombre": row[1],
-                "especie": row[2],
-                "dieta": row[3],
-                "recinto": row[4]
-            })
+        lista = [{"id": r[0], "nombre": r[1], "especie": r[2], "dieta": r[3], "recinto": r[4], "id_recinto": r[5]} for r in cursor]
+        
+        cursor.close()
+        conn.close()
+        return jsonify(lista)
+    except Exception as e:
+        print(f"Error GET Dinosaurios: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/dinosaurios', methods=['POST'])
+def add_dinosaurio():
+    """Insertar un nuevo dinosaurio respetando la herencia de objetos"""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Determinar si es Carnívoro o Herbívoro para usar el constructor correcto
+        es_carnivoro = "carn" in data['dieta'].lower()
+        
+        if es_carnivoro:
+            # Si es carnívoro, usamos T_Carnivoro. Pasamos valores por defecto para los atributos específicos (agresividad y dentición)
+            sql = """
+                INSERT INTO Dinosaurios VALUES (
+                    T_Carnivoro(:1, :2, :3, :4, :5, 5, 'Dientes Estándar')
+                )
+            """
+        else:
+            # Si es herbívoro/omnívoro, usamos T_Herbivoro. Pasamos valores por defecto (tipo vegetación y si es manada)
+            sql = """
+                INSERT INTO Dinosaurios VALUES (
+                    T_Herbivoro(:1, :2, :3, :4, :5, 'Vegetación Mixta', 'S')
+                )
+            """
             
+        cursor.execute(sql, [data['id'], data['nombre'], data['especie'], data['dieta'], data['id_recinto']])
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": "Dinosaurio registrado con éxito usando Genética Avanzada"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/dinosaurios/<int:id_dino>', methods=['PUT'])
+def update_dinosaurio(id_dino):
+    """Modificar datos respetando las subclases de la base de datos"""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Como es una tabla OF T_Dinosaurio, el UPDATE afecta a los atributos directamente,
+        # pero mantenemos el mismo objeto base.
+        sql = """
+            UPDATE Dinosaurios 
+            SET nombre_propio = :1, especie = :2, dieta_base = :3, id_recinto = :4
+            WHERE id_dino = :5
+        """
+        cursor.execute(sql, [data['nombre'], data['especie'], data['dieta'], data['id_recinto'], id_dino])
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": "Datos genéticos/ubicación actualizados"})
+    except Exception as e:
+        # Aquí es donde el Trigger trg_seguridad_traslados lanzará su error ORA-20005
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/dinosaurios/<int:id_dino>', methods=['DELETE'])
+def delete_dinosaurio(id_dino):
+    """Eliminar un dinosaurio"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql = "DELETE FROM Dinosaurios WHERE id_dino = :1"
+        cursor.execute(sql, [id_dino])
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": "Dinosaurio eliminado de los registros"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ==========================================
+#              API INCIDENCIAS
+# ==========================================
+
+@app.route('/api/incidencias', methods=['POST'])
+def registrar_incidencia():
+    """Registrar un fallo usando el Procedimiento Almacenado y Tabla Anidada"""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Llamamos a tu procedimiento exacto de 5paquetes.sql
+        cursor.callproc('sp_registrar_incidencia', [
+            data['id_recinto'],
+            data['descripcion'],
+            data['nivel_alerta']
+        ])
+        
+        conn.commit()
         cursor.close()
         conn.close()
         
-        return jsonify(lista_dinos)
-        
+        return jsonify({"mensaje": f"Alerta de nivel {data['nivel_alerta']} registrada."}), 201
     except Exception as e:
-        print(f"ALERTA DEL SISTEMA: {e}")
-        return jsonify({"error": "Fallo en la red principal de InGen"}), 500
+        print(f"Error POST Incidencias: {e}")
+        return jsonify({"error": str(e)}), 500
+    
+# ==========================================
+#        NUEVO: PANEL DE INCIDENCIAS
+# ==========================================
+
+@app.route('/panel_incidencias')
+def panel_incidencias():
+    """Carga la página HTML de incidencias"""
+    return render_template('incidencias.html')
+
+@app.route('/api/incidencias/todas', methods=['GET'])
+def get_todas_incidencias():
+    """Obtiene todas las incidencias de las tablas anidadas"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Magia de Oracle para leer tablas anidadas: usamos TABLE()
+        sql = """
+            SELECT r.id_recinto, r.nombre_sector, 
+                   TO_CHAR(i.fecha_incidencia, 'DD/MM/YYYY HH24:MI'), 
+                   i.descripcion, i.nivel_alerta
+            FROM Recintos r, TABLE(r.historial_alertas) i
+            ORDER BY i.fecha_incidencia DESC
+        """
+        cursor.execute(sql)
+        lista = [{"id_recinto": r[0], "sector": r[1], "fecha": r[2], "descripcion": r[3], "nivel": r[4]} for r in cursor]
+        
+        cursor.close()
+        conn.close()
+        return jsonify(lista)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/incidencias/<int:id_recinto>', methods=['PUT'])
+def update_incidencia(id_recinto):
+    """Modifica una incidencia en la tabla anidada"""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Como no tienen ID propio, buscamos por la descripción antigua para actualizarla
+        sql = """
+            UPDATE TABLE(SELECT historial_alertas FROM Recintos WHERE id_recinto = :1) i
+            SET i.descripcion = :2, i.nivel_alerta = :3
+            WHERE i.descripcion = :4
+        """
+        cursor.execute(sql, [id_recinto, data['nueva_desc'], data['nuevo_nivel'], data['vieja_desc']])
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": "Registro de seguridad actualizado"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/incidencias/<int:id_recinto>', methods=['DELETE'])
+def delete_incidencia(id_recinto):
+    """Borra una incidencia específica"""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql = """
+            DELETE FROM TABLE(SELECT historial_alertas FROM Recintos WHERE id_recinto = :1) i
+            WHERE i.descripcion = :2
+        """
+        cursor.execute(sql, [id_recinto, data['descripcion']])
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": "Alerta eliminada del historial"})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ==========================================
+#        NUEVO: PANEL DE EMPLEADOS (RRHH)
+# ==========================================
+
+@app.route('/panel_empleados')
+def panel_empleados():
+    """Carga la interfaz de Recursos Humanos"""
+    return render_template('empleados.html')
+
+@app.route('/api/empleados', methods=['GET'])
+def get_empleados():
+    """Obtener el listado del personal de InGen"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql = """
+            SELECT id_empleado, nombre, cargo, telefono, 
+                   TO_CHAR(fecha_contrato, 'YYYY-MM-DD'), en_activo
+            FROM Empleados
+            ORDER BY en_activo DESC, id_empleado ASC
+        """
+        cursor.execute(sql)
+        lista = [{"id": r[0], "nombre": r[1], "cargo": r[2], "telefono": r[3], "fecha_contrato": r[4], "en_activo": r[5]} for r in cursor]
+        
+        cursor.close()
+        conn.close()
+        return jsonify(lista)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/empleados', methods=['POST'])
+def add_empleado():
+    """Contratar a un nuevo empleado (El ID se genera solo)"""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql = """
+            INSERT INTO Empleados (nombre, cargo, telefono, fecha_contrato, en_activo)
+            VALUES (:1, :2, :3, TO_DATE(:4, 'YYYY-MM-DD'), :5)
+        """
+        cursor.execute(sql, [data['nombre'], data['cargo'], data['telefono'], data['fecha_contrato'], data['en_activo']])
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": "Nuevo empleado registrado en InGen"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/empleados/<int:id_empleado>', methods=['PUT'])
+def update_empleado(id_empleado):
+    """Modificar expediente. ¡Esto activará tu trigger de Auditoría!"""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql = """
+            UPDATE Empleados 
+            SET nombre = :1, cargo = :2, telefono = :3, en_activo = :4
+            WHERE id_empleado = :5
+        """
+        cursor.execute(sql, [data['nombre'], data['cargo'], data['telefono'], data['en_activo'], id_empleado])
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": "Expediente actualizado. Auditoría notificada."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/empleados/<int:id_empleado>', methods=['DELETE'])
+def baja_empleado(id_empleado):
+    """Despedir empleado usando tu Procedimiento Almacenado"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Usamos tu procedimiento de 5paquetes.sql para darlo de baja
+        cursor.callproc('sp_baja_empleado', [id_empleado])
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": "Se han revocado los accesos del empleado."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ==========================================
+#        NUEVO: PANEL DE VISITANTES
+# ==========================================
+
+@app.route('/panel_visitantes')
+def panel_visitantes():
+    """Carga la interfaz de control de turistas"""
+    return render_template('visitantes.html')
+
+@app.route('/api/visitantes', methods=['GET'])
+def get_visitantes():
+    """Obtener lista de visitantes en el parque"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        sql = "SELECT id_visitante, nombre, dni_pasaporte, telefono FROM Visitantes ORDER BY id_visitante DESC"
+        cursor.execute(sql)
+        lista = [{"id": r[0], "nombre": r[1], "dni": r[2], "telefono": r[3]} for r in cursor]
+        cursor.close()
+        conn.close()
+        return jsonify(lista)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/visitantes', methods=['POST'])
+def add_visitante():
+    """Registrar nuevo visitante usando tu procedimiento sp_registrar_visitante"""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Usamos tu procedimiento de 5paquetes.sql
+        cursor.callproc('sp_registrar_visitante', [data['nombre'], data['dni'], data['telefono']])
+        
+        # sp_registrar_visitante ya tiene COMMIT dentro, pero por seguridad:
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": "Visitante registrado y seguro de vida firmado."}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 
 if __name__ == '__main__':
-    # Arrancamos el servidor
     app.run(debug=True, port=5000)
