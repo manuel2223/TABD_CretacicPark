@@ -362,6 +362,122 @@ def add_visitante():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
+# ==========================================
+#          PANEL DE RECINTOS
+# ==========================================
+
+@app.route('/panel_recintos')
+def panel_recintos():
+    """Carga la interfaz de gestión de sectores"""
+    return render_template('recintos.html')
+
+@app.route('/api/recintos', methods=['GET'])
+def get_recintos():
+    """Listar todos los recintos y su estado actual"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # Traemos los datos básicos. Las incidencias se ven en su propio panel.
+        sql = "SELECT id_recinto, nombre_sector, tipo_seguridad, capacidad_max, disponible FROM Recintos ORDER BY id_recinto"
+        cursor.execute(sql)
+        lista = [{"id": r[0], "sector": r[1], "seguridad": r[2], "capacidad": r[3], "disponible": r[4]} for r in cursor]
+        cursor.close()
+        conn.close()
+        return jsonify(lista)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/recintos/<int:id_recinto>', methods=['PUT'])
+def update_recinto(id_recinto):
+    """Actualizar estado de seguridad o disponibilidad usando tu lógica de negocio"""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Podemos usar un UPDATE directo o llamar a tu procedimiento sp_estado_seguridad_recinto
+        # Vamos a usar el procedimiento para la disponibilidad:
+        cursor.callproc('sp_estado_seguridad_recinto', [id_recinto, data['disponible']])
+        
+        # Y un update manual para el resto de campos
+        sql = "UPDATE Recintos SET nombre_sector = :1, tipo_seguridad = :2, capacidad_max = :3 WHERE id_recinto = :4"
+        cursor.execute(sql, [data['sector'], data['seguridad'], data['capacidad'], id_recinto])
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": "Configuración del recinto actualizada."})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
+
+# ==========================================
+#           PANEL DE VENTAS (FINANZAS)
+# ==========================================
+
+@app.route('/panel_ventas')
+def panel_ventas():
+    """Carga la interfaz financiera"""
+    return render_template('ventas.html')
+
+@app.route('/api/ventas', methods=['GET'])
+def get_ventas():
+    """Listado detallado de ventas con JOINs"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        # Unimos Ventas con Servicios y Empleados para tener nombres, no solo IDs
+        sql = """
+            SELECT v.id_venta, s.nombre, e.nombre, v.total, 
+                   TO_CHAR(rv.fecha_visita, 'DD/MM/YYYY')
+            FROM Ventas v
+            JOIN Servicios_Extra s ON v.id_servicio = s.id_servicio
+            JOIN Empleados e ON v.id_empleado = e.id_empleado
+            JOIN Registro_Visitas rv ON v.id_registro = rv.id_registro
+            ORDER BY v.id_venta DESC
+        """
+        cursor.execute(sql)
+        lista = [{"id": r[0], "servicio": r[1], "empleado": r[2], "total": r[3], "fecha": r[4]} for r in cursor]
+        cursor.close()
+        conn.close()
+        return jsonify(lista)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/servicios', methods=['GET'])
+def get_servicios():
+    """Obtener catálogo de servicios para los desplegables"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT id_servicio, nombre, precio FROM Servicios_Extra")
+        lista = [{"id": r[0], "nombre": r[1], "precio": r[2]} for r in cursor]
+        cursor.close()
+        conn.close()
+        return jsonify(lista)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/ventas', methods=['POST'])
+def add_venta():
+    """Registrar una nueva venta de servicio"""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        sql = """
+            INSERT INTO Ventas (id_registro, id_servicio, id_empleado, total)
+            VALUES (:1, :2, :3, :4)
+        """
+        cursor.execute(sql, [data['id_registro'], data['id_servicio'], data['id_empleado'], data['total']])
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": "Transacción completada satisfactoriamente."}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+    
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

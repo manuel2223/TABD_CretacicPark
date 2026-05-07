@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InGen - Gestión de Recintos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-dark text-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-black border-bottom border-warning">
+        <div class="container-fluid">
+            <a class="navbar-brand text-warning fw-bold" href="/">🛠️ InGen - Ingeniería de Recintos</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link text-warning" href="/">Catálogo</a></li>
+                    <li class="nav-item"><a class="nav-link text-info" href="/panel_empleados">RRHH</a></li>
+                    <li class="nav-item"><a class="nav-link text-light active" href="/panel_recintos">Recintos</a></li>
+                    <li class="nav-item"><a class="nav-link text-success" href="/panel_visitantes">Visitantes</a></li>
+                    <li class="nav-item"><a class="nav-link text-danger" href="/panel_incidencias">Alertas</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-5">
+        <div class="row mb-4">
+            <div class="col">
+                <h2 class="text-warning border-bottom border-secondary pb-2">Mapa de Sectores y Seguridad</h2>
+                <p class="text-muted">Administración de perímetros, niveles de contención y aforo máximo.</p>
+            </div>
+        </div>
+
+        <div class="row" id="contenedor-recintos">
+            </div>
+    </div>
+
+    <div class="modal fade text-dark" id="modalRecinto" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content bg-light border-warning border-2">
+                <div class="modal-header bg-black text-warning">
+                    <h5 class="modal-title">Configuración de Perímetro</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formRecinto">
+                        <input type="hidden" id="recId">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Nombre del Sector</label>
+                            <input type="text" class="form-control" id="recNombre" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Sistema de Seguridad</label>
+                            <input type="text" class="form-control" id="recSeguridad" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Capacidad Máxima</label>
+                            <input type="number" class="form-control" id="recCapacidad" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Estado del Sector</label>
+                            <select class="form-select" id="recDisponible" required>
+                                <option value="S">OPERATIVO (Abierto al público)</option>
+                                <option value="N">CLAUSURADO (Mantenimiento/Fuga)</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100 fw-bold">Aplicar Cambios Estructurales</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/recintos.js') }}"></script>
+</body>
+</html>
