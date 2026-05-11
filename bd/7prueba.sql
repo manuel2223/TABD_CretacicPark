@@ -1,45 +1,96 @@
 -- ====================================================================
--- SCRIPT MAESTRO DE INSTALACIÓN: CRETACIC PARK DATABASE
+-- SCRIPT MAESTRO DE INSTALACION: CRETACIC PARK DATABASE
+-- Ejecutar desde SQL*Plus con:
+--   @bd/7prueba.sql
 -- ====================================================================
-SET FEEDBACK ON;
-SET ECHO ON;
-SET SERVEROUTPUT ON;
 
-PROMPT [INICIO] Reconstruyendo el ecosistema de Cretacic Park...
+SET ECHO ON
+SET FEEDBACK ON
+SET SERVEROUTPUT ON
+SET VERIFY OFF
 
--- 1. LIMPIEZA (Opcional - Borra en orden inverso por las FK)
-PROMPT Borrando tablas y tipos previos si existen...
--- DROP TABLE Pago CASCADE CONSTRAINTS;
---DROP TABLE Ventas CASCADE CONSTRAINTS;
---DROP TABLE Servicios_Extra CASCADE CONSTRAINTS;
---DROP TABLE Registro_Visitas CASCADE CONSTRAINTS;
---DROP TABLE Dinosaurios CASCADE CONSTRAINTS;
---DROP TABLE Recintos CASCADE CONSTRAINTS;
---DROP TABLE Auditoria_Empleados CASCADE CONSTRAINTS;
---DROP TABLE Empleados CASCADE CONSTRAINTS;
---DROP TABLE Visitantes CASCADE CONSTRAINTS;
+WHENEVER OSERROR EXIT FAILURE ROLLBACK
+WHENEVER SQLERROR EXIT SQL.SQLCODE ROLLBACK
 
---DROP TYPE T_Herbivoro;
---DROP TYPE T_Carnivoro;
---DROP TYPE T_Dinosaurio;
---DROP TYPE T_Lista_Incidencias;
---DROP TYPE T_Incidencia;
+PROMPT [INICIO] Reconstruyendo Cretacic Park...
 
--- 2. CREACIÓN DE ESTRUCTURAS (Tipos y Herencia)
-PROMPT Ejecutando 01_creacion_tipos.sql...
-@@C:\Users\manuel\Desktop\uca\5\TABD\TABD_CretacicPark\bd\01_creacion_tipos.sql
+PROMPT [1/5] Tipos y limpieza previa
+@@1tipos.sql
 
--- 3. CREACIÓN DE TABLAS FÍSICAS E IDENTITY
-PROMPT Ejecutando 02_creacion_tablas.sql...
-@@C:\Users\manuel\Desktop\uca\5\TABD\TABD_CretacicPark\bd\02_creacion_tablas.sql
+PROMPT [2/5] Tablas
+@@2tablas.sql
 
--- 4. CREACIÓN DE LÓGICA (Triggers, Funciones y Procedimientos)
-PROMPT Ejecutando 03_logica_y_triggers.sql...
-@@C:\Users\manuel\Desktop\uca\5\TABD\TABD_CretacicPark\bd\03_logica_y_triggers.sql
+PROMPT [3/5] Triggers
+@@4triggers.sql
 
--- 5. CARGA INICIAL DE DATOS
-PROMPT Ejecutando 04_insercion_datos.sql...
-@@C:\Users\manuel\Desktop\uca\5\TABD\TABD_CretacicPark\bd\04_insercion_datos.sql
+PROMPT [4/5] Procedimientos
+@@5paquetes.sql
 
-PROMPT [FINALIZADO] El sistema de Cretacic Park está operativo y seguro.
-SET ECHO OFF;
+PROMPT [5/5] Datos de prueba
+@@6Insercion.sql
+
+PROMPT [VALIDACION] Comprobando objetos invalidos
+DECLARE
+    v_invalidos NUMBER;
+BEGIN
+    SELECT COUNT(*)
+    INTO v_invalidos
+    FROM user_objects
+    WHERE status <> 'VALID'
+      AND object_name IN (
+          'T_INCIDENCIA',
+          'T_LISTA_INCIDENCIAS',
+          'T_DINOSAURIO',
+          'T_CARNIVORO',
+          'T_HERBIVORO',
+          'TRG_CONTROL_AFORO_RECINTOS',
+          'TRG_VALIDA_FECHA_VISITA',
+          'TRG_CONFIRMAR_PAGO_RESERVA',
+          'TRG_AUDITORIA_RH',
+          'TRG_SEGURIDAD_TRASLADOS',
+          'SP_REGISTRAR_VISITANTE',
+          'SP_NUEVO_ACTIVO_BIOLOGICO',
+          'SP_REGISTRAR_PAGO',
+          'SP_VER_ALERTAS_RECINTO',
+          'SP_LISTAR_DINOS_DIETA',
+          'SP_BAJA_EMPLEADO',
+          'SP_AJUSTAR_PRECIO_SERVICIO',
+          'SP_ESTADO_SEGURIDAD_RECINTO',
+          'SP_ACTUALIZAR_TICKET',
+          'SP_REGISTRAR_INCIDENCIA'
+      );
+
+    IF v_invalidos > 0 THEN
+        RAISE_APPLICATION_ERROR(-20990, 'Hay objetos invalidos. Ejecuta SELECT object_name, object_type FROM user_objects WHERE status <> ''VALID'';');
+    END IF;
+
+    DBMS_OUTPUT.PUT_LINE('OK: todos los tipos, triggers y procedimientos estan validos.');
+END;
+/
+
+PROMPT [VALIDACION] Comprobando carga minima de datos
+DECLARE
+    PROCEDURE assert_count(p_table VARCHAR2, p_min NUMBER) IS
+        v_total NUMBER;
+    BEGIN
+        EXECUTE IMMEDIATE 'SELECT COUNT(*) FROM ' || p_table INTO v_total;
+        IF v_total < p_min THEN
+            RAISE_APPLICATION_ERROR(-20991, 'La tabla ' || p_table || ' tiene ' || v_total || ' filas; se esperaban al menos ' || p_min || '.');
+        END IF;
+        DBMS_OUTPUT.PUT_LINE('OK: ' || p_table || ' = ' || v_total || ' filas.');
+    END;
+BEGIN
+    assert_count('EMPLEADOS', 5);
+    assert_count('RECINTOS', 6);
+    assert_count('DINOSAURIOS', 6);
+    assert_count('VISITANTES', 6);
+    assert_count('REGISTRO_VISITAS', 4);
+    assert_count('SERVICIOS_EXTRA', 4);
+    assert_count('PAGO', 2);
+    assert_count('VENTAS', 2);
+END;
+/
+
+PROMPT [FINALIZADO] Cretacic Park esta operativo.
+
+SET ECHO OFF

@@ -16,7 +16,7 @@ BEGIN
     SELECT COUNT(*) INTO v_ocupacion_actual
     FROM Registro_Visitas
     WHERE id_recinto = :new.id_recinto
-      AND fecha_visita = :new.fecha_visita;
+      AND TRUNC(fecha_visita) = TRUNC(:new.fecha_visita);
 
     -- 3. Si ya está lleno, abortamos la misión
     IF v_ocupacion_actual >= v_capacidad_max THEN

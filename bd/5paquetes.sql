@@ -54,8 +54,12 @@ END;
 -- E. Función para Listar Dinosaurios por Dieta
 CREATE OR REPLACE PROCEDURE sp_listar_dinos_dieta(p_dieta VARCHAR2) AS
 BEGIN
-    FOR r IN (SELECT nombre_propio, especie FROM Dinosaurios WHERE dieta_base = p_dieta) LOOP
-        DBMS_OUTPUT.PUT_LINE('Dino: ' || r.nombre_propio || ' (' || r.especie || ')');
+    FOR r IN (
+        SELECT nombre_propio, especie, dieta_base
+        FROM Dinosaurios
+        WHERE LOWER(dieta_base) LIKE '%' || LOWER(p_dieta) || '%'
+    ) LOOP
+        DBMS_OUTPUT.PUT_LINE('Dino: ' || r.nombre_propio || ' (' || r.especie || ') - ' || r.dieta_base);
     END LOOP;
 END;
 /
