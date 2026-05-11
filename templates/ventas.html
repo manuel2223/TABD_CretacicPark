@@ -43,21 +43,22 @@
                 <div class="card bg-dark border-secondary p-4 shadow">
                     <h4 class="text-warning mb-4">Nueva Venta</h4>
                     <form id="formVenta">
+                        
                         <div class="mb-3">
-                            <label class="form-label">ID Registro Visita</label>
+                            <label class="form-label" style="color: #ffc107;">ID Registro Visita</label>
                             <input type="number" class="form-control" id="v_registro" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Servicio</label>
+                            <label class="form-label" style="color: #ffc107;">Servicio</label>
                             <select class="form-select" id="v_servicio" onchange="actualizarPrecio()" required>
                                 </select>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">ID Empleado (Vendedor)</label>
+                            <label class="form-label" style="color: #ffc107;">ID Empleado (Vendedor)</label>
                             <input type="number" class="form-control" id="v_empleado" required>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Total a Cobrar ($)</label>
+                            <label class="form-label" style="color: #ffc107;">Total a Cobrar ($)</label>
                             <input type="number" step="0.01" class="form-control" id="v_total" readonly>
                         </div>
                         <button type="submit" class="btn btn-warning w-100 fw-bold">Procesar Pago</button>
@@ -79,6 +80,70 @@
                         </thead>
                         <tbody id="tabla-ventas">
                             </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-md-4">
+                <div class="card bg-dark border-success p-4 shadow">
+                    <h4 class="text-success mb-4">Pago de Visita</h4>
+                    <form id="formPago">
+                        <div class="mb-3">
+                            <label class="form-label text-success">ID Registro Visita</label>
+                            <input type="number" class="form-control" id="p_registro" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-success">Cantidad</label>
+                            <input type="number" step="0.01" class="form-control" id="p_cantidad" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-success">Metodo</label>
+                            <select class="form-select" id="p_metodo" required>
+                                <option value="Tarjeta">Tarjeta</option>
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Transferencia">Transferencia</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 fw-bold">Registrar Pago</button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-8">
+                <h4 class="text-success mb-3">Visitas y Estados</h4>
+                <div class="table-responsive mb-4">
+                    <table class="table table-dark table-hover border-secondary">
+                        <thead>
+                            <tr>
+                                <th>ID Visita</th>
+                                <th>Visitante</th>
+                                <th>Recinto</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-visitas-pago">
+                            <tr><td colspan="5" class="text-center">Cargando visitas...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <h4 class="text-success mb-3">Pagos Registrados</h4>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover border-secondary">
+                        <thead>
+                            <tr>
+                                <th>ID Pago</th>
+                                <th>ID Visita</th>
+                                <th>Fecha</th>
+                                <th>Cantidad</th>
+                                <th>Metodo</th>
+                                <th>Estado Visita</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-pagos">
+                            <tr><td colspan="6" class="text-center">Cargando pagos...</td></tr>
+                        </tbody>
                     </table>
                 </div>
             </div>

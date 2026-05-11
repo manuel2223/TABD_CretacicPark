@@ -319,6 +319,36 @@ def baja_empleado(id_empleado):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/auditoria_empleados', methods=['GET'])
+def get_auditoria_empleados():
+    """Consultar auditoria generada automaticamente por el trigger de RRHH"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        sql = """
+            SELECT a.id, TO_CHAR(a.fecha, 'YYYY-MM-DD HH24:MI:SS'), a.accion,
+                   a.id_empleado, e.nombre
+            FROM Auditoria_Empleados a
+            LEFT JOIN Empleados e ON a.id_empleado = e.id_empleado
+            ORDER BY a.id DESC
+        """
+        cursor.execute(sql)
+        lista = [
+            {
+                "id": r[0],
+                "fecha": r[1],
+                "accion": r[2],
+                "id_empleado": r[3],
+                "empleado": r[4] or "Empleado eliminado"
+            }
+            for r in cursor
+        ]
+        cursor.close()
+        conn.close()
+        return jsonify(lista)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 # ==========================================
 #        NUEVO: PANEL DE VISITANTES
 # ==========================================
@@ -359,6 +389,64 @@ def add_visitante():
         cursor.close()
         conn.close()
         return jsonify({"mensaje": "Visitante registrado y seguro de vida firmado."}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/visitas', methods=['GET'])
+def get_visitas():
+    """Obtener expediciones/visitas registradas para probar fecha y pagos"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        sql = """
+            SELECT rv.id_registro, v.nombre, r.nombre_sector,
+                   TO_CHAR(rv.fecha_visita, 'YYYY-MM-DD'),
+                   rv.tipo_entrada, rv.estado
+            FROM Registro_Visitas rv
+            JOIN Visitantes v ON rv.id_visitante = v.id_visitante
+            JOIN Recintos r ON rv.id_recinto = r.id_recinto
+            ORDER BY rv.id_registro DESC
+        """
+        cursor.execute(sql)
+        lista = [
+            {
+                "id": r[0],
+                "visitante": r[1],
+                "recinto": r[2],
+                "fecha": r[3],
+                "tipo_entrada": r[4],
+                "estado": r[5]
+            }
+            for r in cursor
+        ]
+        cursor.close()
+        conn.close()
+        return jsonify(lista)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/visitas', methods=['POST'])
+def add_visita():
+    """Registrar una nueva visita. El trigger valida fechas pasadas y aforo."""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        sql = """
+            INSERT INTO Registro_Visitas (id_visitante, id_recinto, fecha_visita, tipo_entrada, estado)
+            VALUES (:1, :2, TO_DATE(:3, 'YYYY-MM-DD'), :4, :5)
+        """
+        cursor.execute(sql, [
+            data['id_visitante'],
+            data['id_recinto'],
+            data['fecha_visita'],
+            data['tipo_entrada'],
+            data.get('estado', 'Pendiente')
+        ])
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": "Expedicion registrada"}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
@@ -475,6 +563,56 @@ def add_venta():
         cursor.close()
         conn.close()
         return jsonify({"mensaje": "Transacción completada satisfactoriamente."}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/pagos', methods=['GET'])
+def get_pagos():
+    """Listado de pagos reales. Insertarlos dispara trg_confirmar_pago_reserva."""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        sql = """
+            SELECT p.id_pago, p.id_registro, TO_CHAR(p.fecha_pago, 'YYYY-MM-DD HH24:MI'),
+                   p.cantidad, p.metodo, rv.estado
+            FROM Pago p
+            JOIN Registro_Visitas rv ON p.id_registro = rv.id_registro
+            ORDER BY p.id_pago DESC
+        """
+        cursor.execute(sql)
+        lista = [
+            {
+                "id": r[0],
+                "id_registro": r[1],
+                "fecha": r[2],
+                "cantidad": r[3],
+                "metodo": r[4],
+                "estado_visita": r[5]
+            }
+            for r in cursor
+        ]
+        cursor.close()
+        conn.close()
+        return jsonify(lista)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/pagos', methods=['POST'])
+def add_pago():
+    """Registrar pago de una visita mediante procedimiento; el trigger marca Pagado."""
+    try:
+        data = request.json
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.callproc('sp_registrar_pago', [
+            data['id_registro'],
+            data['cantidad'],
+            data['metodo']
+        ])
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": "Pago registrado. La visita debe quedar como Pagado."}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     

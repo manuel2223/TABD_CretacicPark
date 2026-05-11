@@ -32,7 +32,7 @@
             </div>
         </div>
 
-        <div class="table-responsive">
+        <div class="table-responsive mb-5">
             <table class="table table-dark table-striped border-secondary">
                 <thead>
                     <tr>
@@ -46,6 +46,56 @@
                     <tr><td colspan="4" class="text-center">Cargando base de datos de visitantes...</td></tr>
                 </tbody>
             </table>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-5">
+                <div class="card bg-dark border-success p-4 shadow">
+                    <h4 class="text-success mb-4">Nueva Expedicion</h4>
+                    <form id="formVisita">
+                        <div class="mb-3">
+                            <label class="form-label text-success">ID Visitante</label>
+                            <input type="number" class="form-control" id="expVisitante" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-success">ID Recinto</label>
+                            <input type="number" class="form-control" id="expRecinto" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-success">Fecha de visita</label>
+                            <input type="date" class="form-control" id="expFecha" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-success">Tipo de entrada</label>
+                            <select class="form-select" id="expTipo" required>
+                                <option value="General">General</option>
+                                <option value="VIP">VIP</option>
+                                <option value="Infantil">Infantil</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100 fw-bold">Guardar Expedicion</button>
+                    </form>
+                </div>
+            </div>
+            <div class="col-md-7">
+                <h4 class="text-success mb-3">Expediciones Registradas</h4>
+                <div class="table-responsive">
+                    <table class="table table-dark table-hover border-secondary">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Visitante</th>
+                                <th>Recinto</th>
+                                <th>Fecha</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabla-visitas">
+                            <tr><td colspan="5" class="text-center">Cargando expediciones...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
 

@@ -33,6 +33,25 @@
                 <p class="mt-2">Accediendo a la base de datos de RRHH...</p>
             </div>
         </div>
+
+        <div class="mt-5">
+            <h3 class="text-info border-bottom border-secondary pb-2">Auditoria de RRHH</h3>
+            <div class="table-responsive">
+                <table class="table table-dark table-hover border-secondary">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Fecha</th>
+                            <th>Empleado</th>
+                            <th>Accion generada por trigger</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-auditoria">
+                        <tr><td colspan="4" class="text-center">Cargando auditoria...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <div class="modal fade text-dark" id="modalEmpleado" tabindex="-1" aria-hidden="true">

@@ -1,7 +1,10 @@
 document.addEventListener("DOMContentLoaded", function() {
     cargarServicios();
     cargarVentas();
+    cargarVisitasPago();
+    cargarPagos();
     document.getElementById('formVenta').addEventListener('submit', guardarVenta);
+    document.getElementById('formPago').addEventListener('submit', guardarPago);
 });
 
 let serviciosData = [];
@@ -50,6 +53,48 @@ function cargarVentas() {
         });
 }
 
+function cargarVisitasPago() {
+    fetch('/api/visitas')
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.getElementById('tabla-visitas-pago');
+            tbody.innerHTML = '';
+            data.forEach(v => {
+                const estadoClase = v.estado === 'Pagado' ? 'text-success' : 'text-warning';
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${v.id}</td>
+                        <td>${v.visitante}</td>
+                        <td>${v.recinto}</td>
+                        <td>${v.fecha}</td>
+                        <td class="${estadoClase} fw-bold">${v.estado}</td>
+                    </tr>
+                `;
+            });
+        });
+}
+
+function cargarPagos() {
+    fetch('/api/pagos')
+        .then(res => res.json())
+        .then(data => {
+            const tbody = document.getElementById('tabla-pagos');
+            tbody.innerHTML = '';
+            data.forEach(p => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${p.id}</td>
+                        <td>${p.id_registro}</td>
+                        <td class="text-secondary">${p.fecha}</td>
+                        <td class="text-success fw-bold">$${p.cantidad.toFixed(2)}</td>
+                        <td>${p.metodo}</td>
+                        <td class="text-success fw-bold">${p.estado_visita}</td>
+                    </tr>
+                `;
+            });
+        });
+}
+
 function guardarVenta(event) {
     event.preventDefault();
     const payload = {
@@ -72,4 +117,28 @@ function guardarVenta(event) {
             cargarVentas();
         }
     });
+}
+
+function guardarPago(event) {
+    event.preventDefault();
+    const payload = {
+        id_registro: parseInt(document.getElementById('p_registro').value),
+        cantidad: parseFloat(document.getElementById('p_cantidad').value),
+        metodo: document.getElementById('p_metodo').value
+    };
+
+    fetch('/api/pagos', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(res => res.json())
+    .then(data => {
+        if(data.error) throw new Error(data.error);
+        document.getElementById('formPago').reset();
+        cargarVisitasPago();
+        cargarPagos();
+        alert(data.mensaje);
+    })
+    .catch(error => alert("Error registrando pago: " + error.message));
 }
