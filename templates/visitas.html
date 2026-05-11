@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visitas · Cretacic Park</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+    <nav class="navbar">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="/">Cretacic Park</a>
+            <div class="navbar-collapse">
+                <ul class="navbar-nav">
+                    <li class="nav-item"><a class="nav-link" href="/">Activos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/panel_recintos">Recintos</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/panel_empleados">Empleados</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/panel_visitantes">Visitantes</a></li>
+                    <li class="nav-item"><a class="nav-link active" href="/panel_visitas">Visitas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/panel_ventas">Ventas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="/panel_incidencias">Incidencias</a></li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <div class="title-block">
+                <h2>Visitas</h2>
+                <p class="text-muted">Gestiona reservas, confirmaciones, pagos y entradas al parque.</p>
+            </div>
+            <div class="actions">
+                <button class="btn btn-warning" id="btn-nueva-visita">Nueva visita</button>
+            </div>
+        </div>
+
+        <!-- KPIs -->
+        <div class="kpi-grid">
+            <div class="kpi-card">
+                <div class="kpi-label">Pendientes</div>
+                <div class="kpi-value" id="kpi-pendientes">—</div>
+                <div class="kpi-delta neutral">por confirmar</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Confirmadas</div>
+                <div class="kpi-value" id="kpi-confirmadas">—</div>
+                <div class="kpi-delta neutral">esperando pago</div>
+            </div>
+            <div class="kpi-card accent">
+                <div class="kpi-label">Visitas hoy</div>
+                <div class="kpi-value" id="kpi-hoy">—</div>
+                <div class="kpi-delta neutral" style="color:rgba(255,255,255,.65);">programadas para hoy</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Próximos 7 días</div>
+                <div class="kpi-value" id="kpi-7d">—</div>
+                <div class="kpi-delta neutral">en agenda</div>
+            </div>
+            <div class="kpi-card">
+                <div class="kpi-label">Completadas hoy</div>
+                <div class="kpi-value" id="kpi-completadas-hoy">—</div>
+                <div class="kpi-delta up">accesos al parque</div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs">
+            <button class="tab active" data-tab="hoy">Hoy <span class="tab-count" id="tab-count-hoy">0</span></button>
+            <button class="tab" data-tab="7d">Próximos 7 días <span class="tab-count" id="tab-count-7d">0</span></button>
+            <button class="tab" data-tab="pend">Pendientes <span class="tab-count" id="tab-count-pend">0</span></button>
+            <button class="tab" data-tab="todas">Todas <span class="tab-count" id="tab-count-todas">0</span></button>
+        </div>
+
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <div class="search">
+                <input type="text" id="search-visitas" class="form-control" placeholder="Buscar por nombre, ID o recinto…">
+            </div>
+        </div>
+
+        <!-- Bulk bar -->
+        <div class="bulk-bar" id="bulk-bar">
+            <span><span class="bulk-count" id="bulk-count">0</span> visitas seleccionadas</span>
+            <div class="spacer"></div>
+            <button class="btn btn-sm btn-warning" id="bulk-confirmar">Confirmar lote</button>
+            <button class="btn btn-sm btn-outline-danger" id="bulk-cancelar">Cancelar lote</button>
+            <button class="btn btn-sm btn-outline-light" id="bulk-clear">Limpiar selección</button>
+        </div>
+
+        <!-- Tabla -->
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th style="width:32px;"></th>
+                        <th>ID</th>
+                        <th>Visitante</th>
+                        <th>Recinto</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-visitas">
+                    <tr><td colspan="7" class="text-center text-muted">Cargando visitas…</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Side panel -->
+    <div class="side-panel-backdrop" id="side-panel-backdrop"></div>
+    <aside class="side-panel" id="side-panel">
+        <div class="side-panel-header">
+            <h3 id="side-panel-title">Detalle</h3>
+            <button class="btn-close" id="side-panel-close" aria-label="Cerrar"></button>
+        </div>
+        <div class="side-panel-body" id="side-panel-body"></div>
+        <div class="side-panel-actions" id="side-panel-actions"></div>
+    </aside>
+
+    <!-- Modal nueva visita -->
+    <div class="modal fade" id="modalNuevaVisita" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nueva visita</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formNuevaVisita">
+                        <div class="mb-3">
+                            <label class="form-label">Visitante</label>
+                            <select class="form-select" id="nv_visitante" required>
+                                <option value="">Cargando…</option>
+                            </select>
+                            <small class="text-muted" style="font-size:11px;">¿No está? Créalo en <a href="/panel_visitantes">Visitantes</a>.</small>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Recinto</label>
+                            <select class="form-select" id="nv_recinto" required>
+                                <option value="">Cargando…</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Fecha de visita</label>
+                            <input type="date" class="form-control" id="nv_fecha" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Tipo de entrada</label>
+                            <select class="form-select" id="nv_tipo" required>
+                                <option value="General">General</option>
+                                <option value="VIP">VIP</option>
+                                <option value="Infantil">Infantil</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100">Crear visita (Pendiente)</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cobrar visita -->
+    <div class="modal fade" id="modalCobrar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cobrar visita <span id="cobrar-vid" class="text-muted"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formCobrar">
+                        <input type="hidden" id="cobrar_id_registro">
+                        <div class="mb-3">
+                            <label class="form-label">Cantidad (€)</label>
+                            <input type="number" step="0.01" class="form-control" id="cobrar_cantidad" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Método de pago</label>
+                            <select class="form-select" id="cobrar_metodo" required>
+                                <option value="Tarjeta">Tarjeta</option>
+                                <option value="Efectivo">Efectivo</option>
+                                <option value="Transferencia">Transferencia</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-success w-100">Procesar cobro</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Reprogramar -->
+    <div class="modal fade" id="modalReprogramar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reprogramar visita</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formReprogramar">
+                        <input type="hidden" id="repro_id_registro">
+                        <div class="mb-3">
+                            <label class="form-label">Nueva fecha</label>
+                            <input type="date" class="form-control" id="repro_fecha" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Nuevo recinto (opcional)</label>
+                            <select class="form-select" id="repro_recinto">
+                                <option value="">Mantener actual</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100">Reprogramar</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Cancelar -->
+    <div class="modal fade" id="modalCancelar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cancelar visita</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formCancelar">
+                        <input type="hidden" id="cancel_id_registro">
+                        <div class="mb-3">
+                            <label class="form-label">Motivo</label>
+                            <textarea class="form-control" id="cancel_motivo" rows="3" required placeholder="Ej: solicitud del visitante, recinto cerrado por mantenimiento…"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-danger w-100">Cancelar visita</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Reembolsar -->
+    <div class="modal fade" id="modalReembolsar" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Reembolsar visita</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formReembolsar">
+                        <input type="hidden" id="reemb_id_registro">
+                        <div class="mb-3">
+                            <label class="form-label">Cantidad a reembolsar (€)</label>
+                            <input type="number" step="0.01" class="form-control" id="reemb_cantidad" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Motivo</label>
+                            <textarea class="form-control" id="reemb_motivo" rows="2" required></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-outline-danger w-100">Procesar reembolso</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/toasts.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/status.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/visitas.js') }}"></script>
+</body>
+</html>

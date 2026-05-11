@@ -3,13 +3,22 @@ import oracledb
 
 app = Flask(__name__)
 
+DB_USER = "system"
+DB_PASSWORD = "oracle"
+DB_DSN = "127.0.0.1:1521/XEPDB1"
+
+db_pool = oracledb.create_pool(
+    user=DB_USER,
+    password=DB_PASSWORD,
+    dsn=DB_DSN,
+    min=1,
+    max=8,
+    increment=1
+)
+
 # --- CONFIGURACIÓN DE CONEXIÓN ---
 def get_db_connection():
-    return oracledb.connect(
-        user="system",       
-        password="oracle",  
-        dsn="localhost:1521/XEPDB1"
-    )
+    return db_pool.acquire()
 
 # --- RUTAS FRONTEND ---
 @app.route('/')
