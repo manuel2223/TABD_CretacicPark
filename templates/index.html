@@ -11,15 +11,18 @@
 
     <nav class="navbar navbar-expand-lg navbar-dark bg-black border-bottom border-warning">
         <div class="container-fluid">
-            <a class="navbar-brand text-warning fw-bold" href="#">🦖 Cretacic Park - Red Principal</a>
-            <a href="/panel_incidencias" class="btn btn-outline-light ms-2">Incidencias</a>
-            <a href="/panel_empleados" class="btn btn-outline-light ms-2">Empleados</a>
-            <a href="/panel_visitantes" class="btn btn-outline-light ms-2">Visitantes</a>
-             <a href="/panel_recintos" class="btn btn-outline-light ms-2">Recintos</a>
-            <a href="/panel_ventas" class="btn btn-outline-light ms-2">Ventas</a>
-            <div class="d-flex">
+            <a class="navbar-brand text-warning fw-bold" href="/">InGen - Ventas y Visitas</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link text-warning active" href="/">Catálogo</a></li>
+                    <li class="nav-item"><a class="nav-link text-info" href="/panel_empleados">RRHH</a></li>
+                    <li class="nav-item"><a class="nav-link text-light" href="/panel_recintos">Recintos</a></li>
+                    <li class="nav-item"><a class="nav-link text-success" href="/panel_visitantes">Visitantes</a></li>
+                    <li class="nav-item"><a class="nav-link text-warning" href="/panel_ventas">Ventas</a></li>
+                    <li class="nav-item"><a class="nav-link text-danger" href="/panel_incidencias">Alertas</a></li>
+                </ul>
                 <button class="btn btn-warning me-2" onclick="abrirModalDino()">+ Nuevo Activo</button>
-                <button class="btn btn-danger" onclick="abrirModalIncidencia()">🚨 Registrar Incidencia</button>
+                <button class="btn btn-danger" onclick="abrirModalIncidencia()">Registrar Incidencia</button>
             </div>
         </div>
     </nav>

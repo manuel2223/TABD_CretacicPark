@@ -214,7 +214,7 @@ def delete_incidencia(id_recinto):
         data = request.json
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         sql = """
             DELETE FROM TABLE(SELECT historial_alertas FROM Recintos WHERE id_recinto = :1) i
             WHERE i.descripcion = :2
@@ -401,24 +401,31 @@ def get_visitas():
         sql = """
             SELECT rv.id_registro, v.nombre, r.nombre_sector,
                    TO_CHAR(rv.fecha_visita, 'YYYY-MM-DD'),
-                   rv.tipo_entrada, rv.estado
+                   rv.tipo_entrada, rv.estado,
+                   NVL(SUM(p.cantidad), 0) AS total_pagado,
+                   COUNT(p.id_pago) AS num_pagos
             FROM Registro_Visitas rv
             JOIN Visitantes v ON rv.id_visitante = v.id_visitante
             JOIN Recintos r ON rv.id_recinto = r.id_recinto
+            LEFT JOIN Pago p ON p.id_registro = rv.id_registro
+            GROUP BY rv.id_registro, v.nombre, r.nombre_sector,
+                     rv.fecha_visita, rv.tipo_entrada, rv.estado
             ORDER BY rv.id_registro DESC
         """
         cursor.execute(sql)
-        lista = [
-            {
+        lista = []
+        for r in cursor:
+            lista.append({
                 "id": r[0],
                 "visitante": r[1],
                 "recinto": r[2],
                 "fecha": r[3],
                 "tipo_entrada": r[4],
-                "estado": r[5]
-            }
-            for r in cursor
-        ]
+                "estado": 'Confirmada' if r[5] == 'Pagado' else r[5],
+                "estado_pago": 'Pagada' if r[7] > 0 else 'Sin pagar',
+                "total_pagado": r[6],
+                "num_pagos": r[7]
+            })
         cursor.close()
         conn.close()
         return jsonify(lista)
@@ -441,12 +448,52 @@ def add_visita():
             data['id_recinto'],
             data['fecha_visita'],
             data['tipo_entrada'],
-            data.get('estado', 'Pendiente')
+            'Pendiente'
         ])
         conn.commit()
         cursor.close()
         conn.close()
-        return jsonify({"mensaje": "Expedicion registrada"}), 201
+        return jsonify({"mensaje": "Visita creada como pendiente"}), 201
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/visitas/<int:id_registro>', methods=['PUT'])
+def update_visita(id_registro):
+    """Confirmar, cancelar, completar o reprogramar una visita."""
+    try:
+        data = request.json
+        nuevo_estado = data.get('estado')
+        fecha_visita = data.get('fecha_visita')
+        estados_validos = {'Pendiente', 'Confirmada', 'Reprogramada', 'Cancelada', 'Completada'}
+
+        if nuevo_estado not in estados_validos:
+            return jsonify({"error": "Estado de visita no valido"}), 400
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        if fecha_visita:
+            cursor.execute("""
+                UPDATE Registro_Visitas
+                SET estado = :1, fecha_visita = TO_DATE(:2, 'YYYY-MM-DD')
+                WHERE id_registro = :3
+            """, [nuevo_estado, fecha_visita, id_registro])
+        else:
+            cursor.execute(
+                "UPDATE Registro_Visitas SET estado = :1 WHERE id_registro = :2",
+                [nuevo_estado, id_registro]
+            )
+
+        if cursor.rowcount == 0:
+            conn.rollback()
+            cursor.close()
+            conn.close()
+            return jsonify({"error": "Visita no encontrada"}), 404
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+        return jsonify({"mensaje": f"Visita actualizada a {nuevo_estado}"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
@@ -553,6 +600,17 @@ def add_venta():
         data = request.json
         conn = get_db_connection()
         cursor = conn.cursor()
+
+        cursor.execute("SELECT estado FROM Registro_Visitas WHERE id_registro = :1", [data['id_registro']])
+        visita = cursor.fetchone()
+        if not visita:
+            cursor.close()
+            conn.close()
+            return jsonify({"error": "La visita indicada no existe"}), 404
+        if visita[0] in ('Pendiente', 'Cancelada'):
+            cursor.close()
+            conn.close()
+            return jsonify({"error": "Solo puedes registrar ventas extra en visitas confirmadas, reprogramadas o completadas."}), 400
         
         sql = """
             INSERT INTO Ventas (id_registro, id_servicio, id_empleado, total)
@@ -587,7 +645,7 @@ def get_pagos():
                 "fecha": r[2],
                 "cantidad": r[3],
                 "metodo": r[4],
-                "estado_visita": r[5]
+                "estado_visita": 'Confirmada' if r[5] == 'Pagado' else r[5]
             }
             for r in cursor
         ]
@@ -604,15 +662,30 @@ def add_pago():
         data = request.json
         conn = get_db_connection()
         cursor = conn.cursor()
+        cursor.execute("SELECT estado FROM Registro_Visitas WHERE id_registro = :1", [data['id_registro']])
+        visita = cursor.fetchone()
+        if not visita:
+            cursor.close()
+            conn.close()
+            return jsonify({"error": "La visita indicada no existe"}), 404
+        if visita[0] not in ('Confirmada', 'Reprogramada'):
+            cursor.close()
+            conn.close()
+            return jsonify({"error": "Confirma la visita antes de registrar el pago. No se puede pagar una visita pendiente, cancelada o completada."}), 400
+
         cursor.callproc('sp_registrar_pago', [
             data['id_registro'],
             data['cantidad'],
             data['metodo']
         ])
+        cursor.execute(
+            "UPDATE Registro_Visitas SET estado = :1 WHERE id_registro = :2",
+            ['Confirmada', data['id_registro']]
+        )
         conn.commit()
         cursor.close()
         conn.close()
-        return jsonify({"mensaje": "Pago registrado. La visita debe quedar como Pagado."}), 201
+        return jsonify({"mensaje": "Pago registrado. La visita queda confirmada y marcada como pagada."}), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     

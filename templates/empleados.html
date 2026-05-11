@@ -9,12 +9,19 @@
 </head>
 <body class="bg-dark text-light">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-black border-bottom border-info">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-black border-bottom border-warning">
         <div class="container-fluid">
-            <a class="navbar-brand text-info fw-bold" href="/">🧬 InGen - Recursos Humanos</a>
-            <div class="d-flex">
-                <button class="btn btn-info me-2 fw-bold" onclick="abrirModalEmpleado()">+ Nuevo Contrato</button>
-                <a href="/" class="btn btn-outline-light">Volver al Catálogo</a>
+            <a class="navbar-brand text-warning fw-bold" href="/">InGen - Ventas y Visitas</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item"><a class="nav-link text-warning" href="/">Catálogo</a></li>
+                    <li class="nav-item"><a class="nav-link text-info active" href="/panel_empleados">RRHH</a></li>
+                    <li class="nav-item"><a class="nav-link text-light" href="/panel_recintos">Recintos</a></li>
+                    <li class="nav-item"><a class="nav-link text-success" href="/panel_visitantes">Visitantes</a></li>
+                    <li class="nav-item"><a class="nav-link text-warning" href="/panel_ventas">Ventas</a></li>
+                    <li class="nav-item"><a class="nav-link text-danger" href="/panel_incidencias">Alertas</a></li>
+                </ul>
+                <button class="btn btn-info fw-bold" onclick="abrirModalEmpleado()">+ Nuevo Contrato</button>
             </div>
         </div>
     </nav>
