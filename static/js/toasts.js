@@ -1,4 +1,3 @@
-// Global toast system. Replaces alert() across the app.
 (function () {
     'use strict';
 
@@ -50,7 +49,6 @@
         info:    (title, message) => show({ kind: '',        title, message }),
     };
 
-    // Helper: deshabilita botón mientras corre la promesa
     window.withLoading = function (btn, fn) {
         const originalText = btn.textContent;
         btn.disabled = true;

@@ -6,11 +6,10 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById('formIncidencia').addEventListener('submit', guardarIncidencia);
 });
 
-// Instancias globales de los modales
 let modalDinoInstancia;
 let modalIncidenciaInstancia;
 
-// --- LÓGICA DE DINOSAURIOS ---
+//  LÓGICA DE DINOSAURIOS 
 
 function cargarDinosaurios() {
     fetch('/api/dinosaurios')
@@ -131,7 +130,7 @@ function eliminarDinosaurio(id) {
     }
 }
 
-// --- LÓGICA DE INCIDENCIAS ---
+//  LÓGICA DE INCIDENCIAS 
 
 function abrirModalIncidencia() {
     document.getElementById('formIncidencia').reset();

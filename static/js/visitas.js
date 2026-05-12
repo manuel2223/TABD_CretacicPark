@@ -1,4 +1,3 @@
-// Visitas — flujo completo: registro, confirmación, cancelación, reprogramación, completar, reembolso
 (function () {
     'use strict';
 
@@ -36,13 +35,11 @@
         document.getElementById('bulk-cancelar').onclick = bulkCancelar;
         document.getElementById('bulk-clear').onclick = () => { state.selected.clear(); render(); };
 
-        // Modales de transición de estado
         document.getElementById('formCobrar').onsubmit       = onSubmitCobrar;
         document.getElementById('formReprogramar').onsubmit  = onSubmitReprogramar;
         document.getElementById('formCancelar').onsubmit     = onSubmitCancelar;
         document.getElementById('formReembolsar').onsubmit   = onSubmitReembolsar;
 
-        // Fecha mínima = hoy
         ['nv_fecha', 'repro_fecha'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.min = new Date().toISOString().split('T')[0];
@@ -66,14 +63,12 @@
                 disponibles.map(r => `<option value="${r.id}">${r.sector} · cap. ${r.capacidad}</option>`).join('');
             const sel = document.getElementById('nv_recinto');
             if (sel) sel.innerHTML = opts;
-            // repro_recinto: añade opción "mantener actual"
             const repro = document.getElementById('repro_recinto');
             if (repro) repro.innerHTML = '<option value="">Mantener recinto actual</option>' +
                 disponibles.map(r => `<option value="${r.id}">${r.sector}</option>`).join('');
         }).catch(() => {});
     }
 
-    // ─── DATA ────────────────────────────────────────────
 
     function loadKpis() {
         fetch('/api/visitas/kpis').then(r => r.json()).then(k => {
@@ -95,13 +90,11 @@
         }).catch(() => {});
     }
 
-    // ─── FILTER + RENDER ─────────────────────────────────
 
     function renderTabs() {
         document.querySelectorAll('.tab[data-tab]').forEach(t => {
             t.classList.toggle('active', t.dataset.tab === state.tab);
         });
-        // Update counts
         const today = todayStr();
         const next7 = nextNDaysStr(7);
         setText('tab-count-hoy', state.all.filter(v => v.fecha === today).length);
@@ -118,7 +111,6 @@
             case 'hoy':  list = list.filter(v => v.fecha === today); break;
             case '7d':   list = list.filter(v => v.fecha >= today && v.fecha <= next7); break;
             case 'pend': list = list.filter(v => v.estado === 'Pendiente'); break;
-            // 'todas' = no filter
         }
         if (state.query) {
             list = list.filter(v =>
@@ -178,7 +170,6 @@
         return `<button class="btn btn-sm btn-outline-light" onclick="event.stopPropagation(); abrirPanelDetalle(${v.id})">Detalle</button>`;
     }
 
-    // ─── ACTIONS ─────────────────────────────────────────
 
     window.confirmarVisita = function (id, btn) {
         return doTransition(id, 'confirmar', {}, btn, 'Visita confirmada.');
@@ -302,7 +293,6 @@
         );
     }
 
-    // ─── BULK ────────────────────────────────────────────
 
     function toggleSelect(id, checked) {
         if (checked) state.selected.add(id); else state.selected.delete(id);
@@ -342,7 +332,6 @@
         });
     }
 
-    // ─── SIDE PANEL ──────────────────────────────────────
 
     window.abrirPanelDetalle = function (id) {
         state.currentDetail = id;
@@ -463,7 +452,6 @@
         new bootstrap.Modal(document.getElementById('modalCobrar')).show();
     };
 
-    // ─── MODAL NUEVA ─────────────────────────────────────
 
     function abrirModalNueva() {
         document.getElementById('formNuevaVisita').reset();
@@ -474,8 +462,6 @@
         const inst = bootstrap.Modal.getInstance(document.getElementById('modalNuevaVisita'));
         if (inst) inst.hide();
     }
-
-    // ─── HELPERS ─────────────────────────────────────────
 
     function setText(id, v) {
         const el = document.getElementById(id);

@@ -1,7 +1,3 @@
--- ====================================================================
--- FICHERO 4: INSERCIÓN DE DATOS DE PRUEBA (DATA SEEDING)
--- ====================================================================
-
 -- 1. Insertar Empleados (Rangers y Veterinarios)
 INSERT INTO Empleados (nombre, cargo, telefono, fecha_contrato, en_activo) 
 VALUES ('Alan Grant', 'Paleontólogo Jefe', '555-0101', TO_DATE('1993-06-11', 'YYYY-MM-DD'), 'S');
@@ -19,7 +15,6 @@ INSERT INTO Empleados (nombre, cargo, telefono, fecha_contrato, en_activo)
 VALUES ('Owen Grady', 'Entrenador de Etología', '555-0707', TO_DATE('2015-06-12', 'YYYY-MM-DD'), 'S');
 
 -- 2. Insertar Recintos
--- Nota: Inicializamos la tabla anidada vacía con T_Lista_Incidencias()
 INSERT INTO Recintos (nombre_sector, tipo_seguridad, capacidad_max, disponible, historial_alertas)
 VALUES ('T-Rex Kingdom', 'Valla Electrificada Nivel 10', 1, 'S', T_Lista_Incidencias());
 
@@ -47,8 +42,6 @@ INSERT INTO Recintos (nombre_sector, tipo_seguridad, capacidad_max, disponible, 
 VALUES ('Bosque de Triceratops', 'Foso Natural', 10, 'S', T_Lista_Incidencias());
 
 -- 3. Insertar Dinosaurios (Usando constructores de Herencia)
--- Sintaxis: T_Tipo(id, nombre, especie, dieta, ID_RECINTO, atributo_especifico1, ...)
-
 INSERT INTO Dinosaurios VALUES (
     T_Carnivoro(1, 'Rexy', 'Tyrannosaurus Rex', 'Carnívoro', 
                 (SELECT id_recinto FROM Recintos WHERE nombre_sector = 'T-Rex Kingdom'), 
@@ -99,7 +92,6 @@ INSERT INTO Visitantes (nombre, dni_pasaporte, telefono) VALUES ('Tim Murphy', '
 INSERT INTO Visitantes (nombre, dni_pasaporte, telefono) VALUES ('Claire Dearing', '55556666E', '555-8899');
 
 -- 5. Registro de Visitas (Reservas)
--- El trigger 'trg_gestion_disponibilidad_recinto' cambiará el recinto a disponible='N'
 INSERT INTO Registro_Visitas (id_visitante, id_recinto, fecha_visita, tipo_entrada, estado)
 VALUES (1, 1, SYSDATE + 5, 'VIP', 'Pendiente');
 
@@ -128,7 +120,6 @@ INSERT INTO Servicios_Extra (nombre, descripcion, precio)
 VALUES ('Foto con Raptor', 'Fotografía profesional (con medidas de seguridad)', 30.00);
 
 -- 7. Pagos
--- El trigger 'trg_confirmar_pago_reserva' cambiará el estado de la visita a 'Pagado'
 INSERT INTO Pago (id_registro, fecha_pago, cantidad, metodo)
 VALUES (1, SYSDATE, 500.00, 'Tarjeta');
 

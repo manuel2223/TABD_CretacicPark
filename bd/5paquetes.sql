@@ -1,7 +1,3 @@
--- ==========================================================
--- PROCEDIMIENTOS DE INSERCIÓN
--- ==========================================================
-
 -- A. Insertar Visitante (Antes Cliente)
 CREATE OR REPLACE PROCEDURE sp_registrar_visitante(
     p_nombre VARCHAR2, p_dni VARCHAR2, p_tel VARCHAR2
@@ -13,13 +9,12 @@ BEGIN
 END;
 /
 
--- B. Insertar Dinosaurio (Específica de tu parque)
+-- B. Insertar Dinosaurio 
 -- Maneja la inserción polimórfica según el tipo
 CREATE OR REPLACE PROCEDURE sp_nuevo_activo_biologico(
     p_dino T_Dinosaurio
 ) AS
 BEGIN
-    -- Como es una tabla OF T_Dinosaurio, le pasamos el objeto entero
     INSERT INTO Dinosaurios VALUES (p_dino);
     COMMIT;
 END;
@@ -72,9 +67,7 @@ BEGIN
 END;
 /
 
--- G. Modificar Costo de Mantenimiento (Antes Precio Habitación)
--- Nota: Como no teníamos "precio" en recintos, asumo un nuevo campo o lógica de servicios.
--- Si quieres cambiar el precio de los SERVICIOS:
+-- G. Modificar Costo de Mantenimiento
 CREATE OR REPLACE PROCEDURE sp_ajustar_precio_servicio(p_id NUMBER, p_nuevo_precio NUMBER) AS
 BEGIN
     UPDATE Servicios_Extra SET precio = p_nuevo_precio WHERE id_servicio = p_id;
@@ -82,8 +75,7 @@ BEGIN
 END;
 /
 
--- H. Cambiar Estado de Recinto (Antes Estado Habitación)
--- Útil para cerrar sectores por fugas o mantenimiento
+-- H. Cambiar Estado de Recinto
 CREATE OR REPLACE PROCEDURE sp_estado_seguridad_recinto(p_id NUMBER, p_disponible CHAR) AS
 BEGIN
     UPDATE Recintos SET disponible = p_disponible WHERE id_recinto = p_id;
@@ -91,7 +83,7 @@ BEGIN
 END;
 /
 
--- I. Modificar Estado de Visita (Antes Estado Reserva)
+-- I. Modificar Estado de Visita
 CREATE OR REPLACE PROCEDURE sp_actualizar_ticket(p_id NUMBER, p_estado VARCHAR2) AS
 BEGIN
     UPDATE Registro_Visitas SET estado = p_estado WHERE id_registro = p_id;

@@ -1,4 +1,3 @@
-// Backend health check + global error UX
 (function () {
     'use strict';
 
@@ -49,8 +48,6 @@
     }
 
     function repeatClear() {
-        // Re-apply empty states to win race with page-specific cargar*() functions
-        // that may clear tbody on their own 500 response
         clearLoadingPlaceholders();
         [200, 600, 1500].forEach(function (ms) {
             setTimeout(clearLoadingPlaceholders, ms);

@@ -1,7 +1,3 @@
--- ====================================================================
--- FICHERO 1: CREACION DE TIPOS Y HERENCIA
--- ====================================================================
--- Limpieza idempotente: permite ejecutar 7prueba.sql tantas veces como haga falta.
 BEGIN
     FOR t IN (
         SELECT column_value AS object_name

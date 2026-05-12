@@ -16,19 +16,13 @@ db_pool = oracledb.create_pool(
     increment=1
 )
 
-# --- CONFIGURACIÓN DE CONEXIÓN ---
 def get_db_connection():
     return db_pool.acquire()
 
-# --- RUTAS FRONTEND ---
 @app.route('/')
 def home():
     """Ruta principal que carga la interfaz web"""
     return render_template('index.html')
-
-# ==========================================
-#              API DINOSAURIOS
-# ==========================================
 
 @app.route('/api/dinosaurios', methods=['GET'])
 def get_dinosaurios():
@@ -37,7 +31,6 @@ def get_dinosaurios():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Consulta adaptada a tu esquema exacto
         sql = """
             SELECT d.id_dino, d.nombre_propio, d.especie, d.dieta_base, r.nombre_sector, d.id_recinto
             FROM Dinosaurios d
@@ -63,18 +56,15 @@ def add_dinosaurio():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Determinar si es Carnívoro o Herbívoro para usar el constructor correcto
         es_carnivoro = "carn" in data['dieta'].lower()
         
         if es_carnivoro:
-            # Si es carnívoro, usamos T_Carnivoro. Pasamos valores por defecto para los atributos específicos (agresividad y dentición)
             sql = """
                 INSERT INTO Dinosaurios VALUES (
                     T_Carnivoro(:1, :2, :3, :4, :5, 5, 'Dientes Estándar')
                 )
             """
         else:
-            # Si es herbívoro/omnívoro, usamos T_Herbivoro. Pasamos valores por defecto (tipo vegetación y si es manada)
             sql = """
                 INSERT INTO Dinosaurios VALUES (
                     T_Herbivoro(:1, :2, :3, :4, :5, 'Vegetación Mixta', 'S')
@@ -92,14 +82,11 @@ def add_dinosaurio():
 
 @app.route('/api/dinosaurios/<int:id_dino>', methods=['PUT'])
 def update_dinosaurio(id_dino):
-    """Modificar datos respetando las subclases de la base de datos"""
     try:
         data = request.json
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Como es una tabla OF T_Dinosaurio, el UPDATE afecta a los atributos directamente,
-        # pero mantenemos el mismo objeto base.
         sql = """
             UPDATE Dinosaurios 
             SET nombre_propio = :1, especie = :2, dieta_base = :3, id_recinto = :4
@@ -112,7 +99,6 @@ def update_dinosaurio(id_dino):
         conn.close()
         return jsonify({"mensaje": "Datos genéticos/ubicación actualizados"})
     except Exception as e:
-        # Aquí es donde el Trigger trg_seguridad_traslados lanzará su error ORA-20005
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/dinosaurios/<int:id_dino>', methods=['DELETE'])
@@ -132,9 +118,6 @@ def delete_dinosaurio(id_dino):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ==========================================
-#              API INCIDENCIAS
-# ==========================================
 
 @app.route('/api/incidencias', methods=['POST'])
 def registrar_incidencia():
@@ -144,7 +127,6 @@ def registrar_incidencia():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Llamamos a tu procedimiento exacto de 5paquetes.sql
         cursor.callproc('sp_registrar_incidencia', [
             data['id_recinto'],
             data['descripcion'],
@@ -160,13 +142,10 @@ def registrar_incidencia():
         print(f"Error POST Incidencias: {e}")
         return jsonify({"error": str(e)}), 500
     
-# ==========================================
-#        NUEVO: PANEL DE INCIDENCIAS
-# ==========================================
 
 @app.route('/panel_incidencias')
 def panel_incidencias():
-    """Carga la página HTML de incidencias"""
+    """Carga la página de incidencias"""
     return render_template('incidencias.html')
 
 @app.route('/api/incidencias/todas', methods=['GET'])
@@ -176,7 +155,6 @@ def get_todas_incidencias():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Magia de Oracle para leer tablas anidadas: usamos TABLE()
         sql = """
             SELECT r.id_recinto, r.nombre_sector, 
                    TO_CHAR(i.fecha_incidencia, 'DD/MM/YYYY HH24:MI'), 
@@ -201,7 +179,6 @@ def update_incidencia(id_recinto):
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Como no tienen ID propio, buscamos por la descripción antigua para actualizarla
         sql = """
             UPDATE TABLE(SELECT historial_alertas FROM Recintos WHERE id_recinto = :1) i
             SET i.descripcion = :2, i.nivel_alerta = :3
@@ -237,9 +214,6 @@ def delete_incidencia(id_recinto):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ==========================================
-#        NUEVO: PANEL DE EMPLEADOS (RRHH)
-# ==========================================
 
 @app.route('/panel_empleados')
 def panel_empleados():
@@ -270,7 +244,7 @@ def get_empleados():
 
 @app.route('/api/empleados', methods=['POST'])
 def add_empleado():
-    """Contratar a un nuevo empleado (El ID se genera solo)"""
+    """Contratar a un nuevo empleado"""
     try:
         data = request.json
         conn = get_db_connection()
@@ -291,7 +265,7 @@ def add_empleado():
 
 @app.route('/api/empleados/<int:id_empleado>', methods=['PUT'])
 def update_empleado(id_empleado):
-    """Modificar expediente. ¡Esto activará tu trigger de Auditoría!"""
+    """Modificar expediente"""
     try:
         data = request.json
         conn = get_db_connection()
@@ -313,12 +287,11 @@ def update_empleado(id_empleado):
 
 @app.route('/api/empleados/<int:id_empleado>', methods=['DELETE'])
 def baja_empleado(id_empleado):
-    """Despedir empleado usando tu Procedimiento Almacenado"""
+    """Despedir empleado"""
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Usamos tu procedimiento de 5paquetes.sql para darlo de baja
         cursor.callproc('sp_baja_empleado', [id_empleado])
         conn.commit()
         
@@ -358,9 +331,6 @@ def get_auditoria_empleados():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# ==========================================
-#        NUEVO: PANEL DE VISITANTES
-# ==========================================
 
 @app.route('/panel_visitantes')
 def panel_visitantes():
@@ -390,10 +360,8 @@ def add_visitante():
         conn = get_db_connection()
         cursor = conn.cursor()
         
-        # Usamos tu procedimiento de 5paquetes.sql
         cursor.callproc('sp_registrar_visitante', [data['nombre'], data['dni'], data['telefono']])
         
-        # sp_registrar_visitante ya tiene COMMIT dentro, pero por seguridad:
         conn.commit()
         cursor.close()
         conn.close()
@@ -506,9 +474,6 @@ def update_visita(id_registro):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-# ==========================================
-#          PANEL DE RECINTOS
-# ==========================================
 
 @app.route('/panel_recintos')
 def panel_recintos():
@@ -521,7 +486,6 @@ def get_recintos():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Traemos los datos básicos. Las incidencias se ven en su propio panel.
         sql = "SELECT id_recinto, nombre_sector, tipo_seguridad, capacidad_max, disponible FROM Recintos ORDER BY id_recinto"
         cursor.execute(sql)
         lista = [{"id": r[0], "sector": r[1], "seguridad": r[2], "capacidad": r[3], "disponible": r[4]} for r in cursor]
@@ -533,17 +497,13 @@ def get_recintos():
 
 @app.route('/api/recintos/<int:id_recinto>', methods=['PUT'])
 def update_recinto(id_recinto):
-    """Actualizar estado de seguridad o disponibilidad usando tu lógica de negocio"""
+    """Actualizar estado de seguridad o disponibilidad"""
     try:
         data = request.json
         conn = get_db_connection()
         cursor = conn.cursor()
-        
-        # Podemos usar un UPDATE directo o llamar a tu procedimiento sp_estado_seguridad_recinto
-        # Vamos a usar el procedimiento para la disponibilidad:
         cursor.callproc('sp_estado_seguridad_recinto', [id_recinto, data['disponible']])
         
-        # Y un update manual para el resto de campos
         sql = "UPDATE Recintos SET nombre_sector = :1, tipo_seguridad = :2, capacidad_max = :3 WHERE id_recinto = :4"
         cursor.execute(sql, [data['sector'], data['seguridad'], data['capacidad'], id_recinto])
         
@@ -554,10 +514,6 @@ def update_recinto(id_recinto):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
     
-
-# ==========================================
-#           PANEL DE VENTAS (FINANZAS)
-# ==========================================
 
 @app.route('/panel_ventas')
 def panel_ventas():
@@ -570,7 +526,6 @@ def get_ventas():
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        # Unimos Ventas con Servicios y Empleados para tener nombres, no solo IDs
         sql = """
             SELECT v.id_venta, s.nombre, e.nombre, v.total, 
                    TO_CHAR(rv.fecha_visita, 'DD/MM/YYYY')
